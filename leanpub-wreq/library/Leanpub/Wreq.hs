@@ -331,7 +331,7 @@ randomCouponCode :: IO CouponCode
 randomCouponCode =
   do
     s <- sequence (Data.List.replicate 20 randomChar)
-    return (CouponCode (Data.Text.pack s))
+    return (CouponCode (text s))
   where
     randomChar = pickOne charset
     charset = ['a'..'z'] ++ ['0'..'9']
