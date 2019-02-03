@@ -82,6 +82,16 @@ data Context =
     , contextKeyMaybe :: Maybe ApiSecretKey
     }
 
+{- | There are two ways to run a 'Leanpub' action:
+
+1. Create a 'Context' and then apply the newtyped
+   @Context -> IO a@ function directly.
+
+2. Create a 'Config' and then apply the 'runLeanpub' function.
+   This approach is likely more convenient, because it can do
+   some things automatically like creating the 'Session' and
+   reading your API key from a file. -}
+
 newtype Leanpub a = Leanpub (Context -> IO a)
   deriving ( Functor, Applicative, Monad, MonadIO, MonadFail )
     via ReaderT Context IO
@@ -112,6 +122,13 @@ createContext ConfigData{..} =
             KeyConfig_Nothing -> return Nothing
 
     return Context{..}
+
+{- | Construct a 'Config' by using '<>' to combine any of the following:
+
+* Either 'configKey' or 'configKeyFile' (not both)
+* Optionally, 'configSession'
+
+Then use the config as the first argument to the 'runLeanpub' function. -}
 
 newtype Config = Config (ConfigData -> ConfigData)
   deriving (Semigroup, Monoid) via (Endo ConfigData)

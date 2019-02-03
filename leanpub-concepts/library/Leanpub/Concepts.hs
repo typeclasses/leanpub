@@ -7,9 +7,11 @@ module Leanpub.Concepts
 
   -- * Books
   , BookSlug (..)
+  , bookURL
 
   -- * Coupons
   , CouponCode (..)
+  , couponURL
   , CouponMaxUses (..)
   , CouponNote (..)
 
@@ -20,6 +22,8 @@ import Numeric.Natural (Natural)
 
 -- text
 import Data.Text (Text)
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as TB
 
 {- | Get an API key from the
 <https://leanpub.com/author_dashboard/settings Leanpub dashboard>.
@@ -37,15 +41,42 @@ then your book's slug is @your_book@. -}
 newtype BookSlug = BookSlug Text
     deriving Show
 
-{- | An identifier for a coupon. E.g. if your book's slug is @your_book@ and
-the coupon code is @black_friday@ then users can use your coupon via the URL:
-
-> https://leanpub.com/your_book/c/black_friday
-
+{- |
+>>> :set -XOverloadedStrings
+>>> bookURL (BookSlug "your_book")
+"https://leanpub.com/your_book"
 -}
+
+bookURL :: BookSlug -> Text
+bookURL (BookSlug book) =
+    (LT.toStrict . TB.toLazyText)
+        (  TB.fromString  "https://leanpub.com/"
+        <> TB.fromText    book
+        )
+
+{- | An identifier for a coupon. -}
 
 newtype CouponCode = CouponCode Text
     deriving Show
+
+{- | E.g. if your book's slug is @your_book@ and the coupon code is
+@black_friday@ then users can use your coupon via the URL:
+
+> https://leanpub.com/your_book/c/black_friday
+
+>>> :set -XOverloadedStrings
+>>> couponURL (BookSlug "your_book") (CouponCode "black_friday")
+"https://leanpub.com/your_book/c/black_friday"
+-}
+
+couponURL :: BookSlug -> CouponCode -> Text
+couponURL (BookSlug book) (CouponCode coupon) =
+    (LT.toStrict . TB.toLazyText)
+        (  TB.fromString  "https://leanpub.com/"
+        <> TB.fromText    book
+        <> TB.fromString  "/c/"
+        <> TB.fromText    coupon
+        )
 
 data CouponMaxUses
     = CouponUseUnlimited
