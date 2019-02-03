@@ -1,34 +1,33 @@
 {-# OPTIONS_GHC -Wall -fdefer-typed-holes #-}
 
-{-# LANGUAGE BlockArguments, DerivingVia, RecordWildCards #-}
+{-# LANGUAGE BlockArguments, DerivingVia, LambdaCase, RecordWildCards #-}
 
-{- | Example:
+{- | Example REPL usage:
 
-> do
->   session <- newAPISession
->
->   let
->     key = ApiSecretKey (Data.Text.pack "jMeaxrJgzfghanEWhjE")
->     code = CouponCode (Data.Text.pack "kAmr43mva91ndApQ")
->     slug = BookSlug (Data.Text.pack "finding-success-in-haskell")
->     uses = CouponMaxUses 2
->
->   runLeanpub session (Just key) (createFreeBookCoupon slug code uses)
+>>> config = configKeyFile "/home/chris/.config/typeclasses/leanpub-api-key.txt"
+>>> slug = BookSlug (Data.Text.pack "finding-success-in-haskell")
+>>> note = CouponNote (Data.Text.pack "Free for Type Classes subscriber")
+>>> uses = CouponMaxUses 2
+>>> runLeanpub config (createManyFreeBookCoupons print 200 slug uses (Just note))
 
 -}
 
 module Leanpub.Wreq
   (
   -- * The Leanpub monad
-    Leanpub, runLeanpub, runLeanpub'
+    Leanpub (..), Context (..)
+
+  -- * Configuration
+  , runLeanpub, Config, configSession, configKey, configKeyFile
 
   -- * Leanpub actions
   , getBookSummary
   , getBookSalesSummary
   , createFreeBookCoupon
+  , createManyFreeBookCoupons
 
   -- * Wreq
-  , wreqGet, wreqPost, wreqGetAeson, wreqPostAeson
+  , wreqGet, wreqPost, wreqGetAeson, wreqPostAeson, wreqPostAeson_
   , WreqResponse, Path, Extension
   , QueryParam, FormParam (..), Session, newAPISession
 
@@ -38,10 +37,13 @@ module Leanpub.Wreq
 import qualified Data.Aeson
 
 -- base
-import Control.Monad hiding (fail)
+import Control.Monad hiding (fail, foldM)
 import Control.Monad.IO.Class
 import Control.Monad.Fail
+import qualified Data.List
 import Data.Maybe
+import Data.Monoid
+import Numeric.Natural
 import Prelude hiding (fail)
 
 -- bytestring
@@ -55,9 +57,13 @@ import Leanpub.Concepts
 -- lens
 import Control.Lens ((&), (.~), (^.))
 
+-- rando
+import System.Random.Pick (pickOne)
+
 -- text
 import           Data.Text (Text)
 import qualified Data.Text
+import qualified Data.Text.IO
 
 -- time
 import           Data.Time (Day)
@@ -87,21 +93,69 @@ data Context =
     }
 
 newtype Leanpub a = Leanpub (Context -> IO a)
-  deriving (Functor, Applicative, Monad, MonadIO, MonadFail)
+  deriving ( Functor, Applicative, Monad, MonadIO, MonadFail )
     via ReaderT Context IO
-
-runLeanpub :: Session -> Maybe ApiSecretKey -> Leanpub a -> IO a
-runLeanpub contextSession contextKeyMaybe (Leanpub f) =
-    f Context{..}
-
-runLeanpub' :: Maybe ApiSecretKey -> Leanpub a -> IO a
-runLeanpub' contextKeyMaybe (Leanpub f) =
-    newAPISession >>= \contextSession -> f Context{..}
 
 requireKey :: Leanpub ()
 requireKey =
     Leanpub \Context{..} ->
         when (isNothing contextKeyMaybe) (fail "API key is required.")
+
+------------------------------------------------------------
+
+runLeanpub :: Config -> Leanpub a -> IO a
+runLeanpub (Config config) (Leanpub action) =
+    createContext (config baseConfigData) >>= action
+
+createContext :: ConfigData -> IO Context
+createContext ConfigData{..} =
+  do
+    contextSession <-
+        case configData_session of
+            Nothing -> newAPISession
+            Just x -> return x
+
+    contextKeyMaybe <-
+        case configData_key of
+            KeyConfig_Pure x  -> return (Just x)
+            KeyConfig_File x  -> Just <$> readKeyFile x
+            KeyConfig_Nothing -> return Nothing
+
+    return Context{..}
+
+newtype Config = Config (ConfigData -> ConfigData)
+  deriving (Semigroup, Monoid) via (Endo ConfigData)
+
+data ConfigData =
+  ConfigData
+    { configData_session :: Maybe Session
+    , configData_key :: KeyConfig
+    }
+
+data KeyConfig
+  = KeyConfig_Pure ApiSecretKey
+  | KeyConfig_File FilePath
+  | KeyConfig_Nothing
+
+baseConfigData :: ConfigData
+baseConfigData =
+  ConfigData
+    { configData_session = Nothing
+    , configData_key = KeyConfig_Nothing
+    }
+
+readKeyFile :: FilePath -> IO ApiSecretKey
+readKeyFile fp =
+    (ApiSecretKey . Data.Text.strip) <$> Data.Text.IO.readFile fp
+
+configSession :: Session -> Config
+configSession x = Config (\c -> c { configData_session = Just x })
+
+configKey :: ApiSecretKey -> Config
+configKey x = Config (\c -> c { configData_key = KeyConfig_Pure x })
+
+configKeyFile :: FilePath -> Config
+configKeyFile x = Config (\c -> c { configData_key = KeyConfig_File x })
 
 ------------------------------------------------------------
 
@@ -184,6 +238,9 @@ wreqPostAeson :: Path -> [FormParam] -> Leanpub Data.Aeson.Value
 wreqPostAeson path params =
     wreqPost path extJson params >>= wreqBodyAeson
 
+wreqPostAeson_ :: Path -> [FormParam] -> Leanpub ()
+wreqPostAeson_ path params = void (wreqPostAeson path params)
+
 ------------------------------------------------------------
 
 getBookSummary :: BookSlug -> Leanpub Data.Aeson.Value
@@ -196,34 +253,78 @@ getBookSalesSummary (BookSlug slug) =
     requireKey
     wreqGetAeson [slug, text "sales"] []
 
-createFreeBookCoupon :: BookSlug -> CouponCode -> CouponMaxUses
+createFreeBookCoupon
+    :: BookSlug           -- ^ What book does the coupon give away?
+    -> CouponCode         -- ^ The secret that the user needs to have
+                          --   to redeem the coupon
+    -> CouponMaxUses      -- ^ How many times can each coupon be used?
+    -> Maybe CouponNote   -- ^ An optional note to remind you what the
+                          --   coupon is for, why it was issued, etc.
     -> Leanpub Data.Aeson.Value
-createFreeBookCoupon (BookSlug slug) (CouponCode code) uses =
+createFreeBookCoupon (BookSlug slug) code uses noteMaybe =
   do
     requireKey
     start <- liftIO getToday
 
-    let
-        params =
-          catMaybes
-            [ Just (ascii "coupon[coupon_code]" := code)
-            , Just (ascii "coupon[start_date]" := formatDay start)
-            , Just (
-                ascii "coupon[package_discounts_attributes][0][package_slug]"
-                := "book")
-            , Just (
-                ascii "coupon[package_discounts_attributes][0][discounted_price]"
-                := "0.00")
-            , case uses of
-                CouponUseUnlimited -> Nothing
-                CouponMaxUses n -> Just (
-                  ascii "coupon[max_uses]" := toInteger n)
-            ]
+    wreqPostAeson
+        [slug, text "coupons"]
+        (freeBookParams start code uses noteMaybe)
 
-    wreqPostAeson [slug, text "coupons"] params
+createManyFreeBookCoupons
+    :: (CouponCode -> IO ())  -- ^ Action to perform after creating each coupon,
+                              --   e.g. perhaps 'print' for use in a REPL.
+    -> Natural                -- ^ How many coupons?
+    -> BookSlug               -- ^ What book does the coupon give away?
+    -> CouponMaxUses          -- ^ How many times can each coupon be used?
+    -> Maybe CouponNote       -- ^ An optional note to remind you what the
+                              --   coupon is for, why it was issued, etc.
+    -> Leanpub ()
+createManyFreeBookCoupons done n (BookSlug slug) uses noteMaybe =
+  do
+    requireKey
+    start <- liftIO getToday
+
+    sequence_ $ replicate (fromIntegral n) $
+      do
+        code <- liftIO randomCouponCode
+        wreqPostAeson_
+            [slug, text "coupons"]
+            (freeBookParams start code uses noteMaybe)
+        liftIO (done code)
+
+freeBookParams
+    :: Day -> CouponCode -> CouponMaxUses -> Maybe CouponNote
+    -> [FormParam]
+freeBookParams start (CouponCode code) uses noteMaybe =
+    catMaybes
+        [ Just (ascii "coupon[coupon_code]" := code)
+        , Just (ascii "coupon[start_date]" := formatDay start)
+        , Just (
+            ascii "coupon[package_discounts_attributes][0][package_slug]"
+            := "book")
+        , Just (
+            ascii "coupon[package_discounts_attributes][0][discounted_price]"
+            := "0.00")
+        , case uses of
+            CouponUseUnlimited -> Nothing
+            CouponMaxUses n -> Just (
+              ascii "coupon[max_uses]" := toInteger n)
+        , case noteMaybe of
+            Nothing -> Nothing
+            Just (CouponNote note) -> Just (ascii "coupon[note]" := note)
+        ]
 
 getToday :: IO Day
 getToday = Data.Time.utctDay <$> Data.Time.getCurrentTime
 
 formatDay :: Day -> String
 formatDay = Data.Time.formatTime Data.Time.defaultTimeLocale "%Y-%m-%d"
+
+randomCouponCode :: IO CouponCode
+randomCouponCode =
+  do
+    s <- sequence (Data.List.replicate 20 randomChar)
+    return (CouponCode (Data.Text.pack s))
+  where
+    randomChar = pickOne charset
+    charset = ['a'..'z'] ++ ['0'..'9']

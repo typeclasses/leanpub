@@ -1,10 +1,18 @@
 {-# OPTIONS_GHC -Wall #-}
 
 module Leanpub.Concepts
-  ( ApiSecretKey (..)
+  (
+  -- * API
+    ApiSecretKey (..)
+
+  -- * Books
   , BookSlug (..)
+
+  -- * Coupons
   , CouponCode (..)
   , CouponMaxUses (..)
+  , CouponNote (..)
+
   ) where
 
 -- base
@@ -27,6 +35,7 @@ newtype ApiSecretKey = ApiSecretKey Text
 then your book's slug is @your_book@. -}
 
 newtype BookSlug = BookSlug Text
+    deriving Show
 
 {- | An identifier for a coupon. E.g. if your book's slug is @your_book@ and
 the coupon code is @black_friday@ then users can use your coupon via the URL:
@@ -36,9 +45,17 @@ the coupon code is @black_friday@ then users can use your coupon via the URL:
 -}
 
 newtype CouponCode = CouponCode Text
+    deriving Show
 
 data CouponMaxUses
-  = CouponUseUnlimited
-      -- ^ There is no limit to how many times the coupon may be used.
-  | CouponMaxUses Natural
-      -- ^ The maximum number of times the coupon may be used.
+    = CouponUseUnlimited
+        -- ^ There is no limit to how many times the coupon may be used.
+    | CouponMaxUses Natural
+        -- ^ The maximum number of times the coupon may be used.
+    deriving Show
+
+{- | A description of a coupon. This is just used to remind you of what it was
+for; it is not visible to users. -}
+
+data CouponNote = CouponNote Text
+    deriving Show

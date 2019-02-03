@@ -37,8 +37,10 @@ library
         aeson
       , base >=4.10 && <5
       , bytestring
+      , exceptions
       , lens
       , leanpub-concepts
+      , rando
       , text
       , time
       , transformers
