@@ -118,7 +118,7 @@ createContext ConfigData{..} =
     contextKeyMaybe <-
         case configData_key of
             KeyConfig_Pure x  -> return (Just x)
-            KeyConfig_File x  -> Just <$> readKeyFile x
+            KeyConfig_File x  -> fmap Just (readKeyFile x)
             KeyConfig_Nothing -> return Nothing
 
     return Context{..}
@@ -153,7 +153,7 @@ baseConfigData =
 
 readKeyFile :: FilePath -> IO ApiSecretKey
 readKeyFile fp =
-    (ApiSecretKey . Data.Text.strip) <$> Data.Text.IO.readFile fp
+    fmap (ApiSecretKey . Data.Text.strip) (Data.Text.IO.readFile fp)
 
 configSession :: Session -> Config
 configSession x = Config (\c -> c { configData_session = Just x })
@@ -291,7 +291,7 @@ createManyFreeBookCoupons done n (BookSlug slug) uses noteMaybe =
     requireKey
     start <- liftIO getToday
 
-    sequence_ $ replicate (fromIntegral n) $
+    (sequence_ . replicate (fromIntegral n))
       do
         code <- liftIO randomCouponCode
         wreqPostAeson_
@@ -322,7 +322,7 @@ freeBookParams start (CouponCode code) uses noteMaybe =
         ]
 
 getToday :: IO Day
-getToday = Data.Time.utctDay <$> Data.Time.getCurrentTime
+getToday = fmap Data.Time.utctDay Data.Time.getCurrentTime
 
 formatDay :: Day -> String
 formatDay = Data.Time.formatTime Data.Time.defaultTimeLocale "%Y-%m-%d"
