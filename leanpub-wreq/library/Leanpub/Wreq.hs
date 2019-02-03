@@ -2,16 +2,6 @@
 
 {-# LANGUAGE BlockArguments, DerivingVia, LambdaCase, RecordWildCards #-}
 
-{- | Example REPL usage:
-
->>> config = configKeyFile "/home/chris/.config/typeclasses/leanpub-api-key.txt"
->>> slug = BookSlug (Data.Text.pack "finding-success-in-haskell")
->>> note = CouponNote (Data.Text.pack "Free for Type Classes subscriber")
->>> uses = CouponMaxUses 2
->>> runLeanpub config (createManyFreeBookCoupons print 200 slug uses (Just note))
-
--}
-
 module Leanpub.Wreq
   (
   -- * The Leanpub monad
