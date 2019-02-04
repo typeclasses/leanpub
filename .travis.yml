@@ -99,7 +99,7 @@ script:
   # test that source-distributions can be generated
   - (cd "leanpub-concepts" && cabal sdist)
   - (cd "leanpub-wreq" && cabal sdist)
-  - mv "leanpub-concepts"/dist/leanpub-concepts-*.tar.gz "leanpub-wreq"/dist/leanpub-wreq-*.tar.gz ${DISTDIR}/
+  - mv dist-newstyle/sdist/*.tar.gz ${DISTDIR}/
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
   - "printf 'packages: leanpub-concepts-*/*.cabal leanpub-wreq-*/*.cabal\\n' > cabal.project"
