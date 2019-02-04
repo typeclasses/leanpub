@@ -21,7 +21,7 @@ license: MIT
 license-file: license.txt
 
 build-type: Simple
-tested-with: GHC==8.2.2, GHC==8.4.3, GHC==8.6.1
+tested-with: GHC==8.6.1
 
 extra-source-files:
     changelog.md
