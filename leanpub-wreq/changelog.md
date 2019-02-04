@@ -1,1 +1,3 @@
-2019 Feb 3 - Initial release, v1.0.0.0
+1.0.0.0 - 2019 Feb 3
+
+  * Initial release

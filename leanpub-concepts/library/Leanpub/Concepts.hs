@@ -64,6 +64,9 @@ newtype CouponCode = CouponCode Text
 
 > https://leanpub.com/your_book/c/black_friday
 
+(Don't just give the code at the end of the coupon to your potential customers,
+since there's nowhere to type it in on the checkout form.)
+
 >>> :set -XOverloadedStrings
 >>> couponURL (BookSlug "your_book") (CouponCode "black_friday")
 "https://leanpub.com/your_book/c/black_friday"
