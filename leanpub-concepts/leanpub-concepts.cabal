@@ -21,7 +21,7 @@ license: MIT
 license-file: license.txt
 
 build-type: Simple
-tested-with: GHC==8.6.1
+tested-with: GHC == 8.8.3, GHC == 8.10.3
 
 extra-source-files:
     changelog.md
@@ -34,6 +34,6 @@ library
         Leanpub.Concepts
 
     build-depends:
-        base >=4.10 && <5
-      , bytestring
-      , text
+        base ^>= 4.13 || ^>= 4.14
+      , bytestring ^>= 0.11
+      , text ^>= 1.2.3
