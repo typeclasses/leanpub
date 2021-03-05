@@ -1,7 +1,7 @@
 cabal-version: 2.0
 
 name: leanpub-wreq
-version: 1.0.0.0
+version: 1.1
 
 synopsis: Use the Leanpub API via Wreq
 category: Web
@@ -40,7 +40,7 @@ library
       , bytestring ^>= 0.11
       , exceptions ^>= 0.10
       , lens ^>= 5.0
-      , leanpub-concepts ^>= 1.0
+      , leanpub-concepts ^>= 1.0 || ^>= 1.1
       , rando ^>= 0.0
       , text ^>= 1.2.3
       , time ^>= 1.11
