@@ -1,9 +1,0 @@
-resolver: lts-13.5
-
-packages:
-  - leanpub-concepts
-  - leanpub-wreq
-
-nix:
-  packages:
-    - zlib
