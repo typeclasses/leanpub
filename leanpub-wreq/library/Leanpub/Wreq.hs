@@ -30,6 +30,9 @@ import qualified Data.Aeson
 import Control.Monad hiding (fail, foldM)
 import Control.Monad.IO.Class
 import Control.Monad.Fail
+import Data.Function ((&))
+import Data.Functor.Const
+import Data.Functor.Identity
 import qualified Data.List
 import Data.Maybe
 import Data.Monoid
@@ -44,11 +47,8 @@ import qualified Data.ByteString.Lazy
 -- leanpub-concepts
 import Leanpub.Concepts
 
--- lens
-import Control.Lens ((&), (.~), (^.))
-
--- rando
-import System.Random.Pick (pickOne)
+-- mwc-random
+import System.Random.MWC (GenIO, createSystemRandom, uniformRM)
 
 -- text
 import           Data.Text (Text)
@@ -67,6 +67,22 @@ import           Network.Wreq         (FormParam (..))
 import qualified Network.Wreq
 import           Network.Wreq.Session (Session, newAPISession)
 import qualified Network.Wreq.Session
+
+------------------------------------------------------------
+
+-- from the 'lens' library
+
+type Getting r s a = (a -> Const r a) -> s -> Const r s
+
+(^.) :: s -> Getting a s a -> a
+s ^. l = getConst (l Const s)
+
+type ASetter s t a b = (a -> Identity b) -> s -> Identity t
+
+(.~) :: ASetter s t a b -> b -> s -> t
+l .~ b = fmap runIdentity $ l (\_ -> Identity b)
+
+------------------------------------------------------------
 
 text :: String -> Text
 text = Data.Text.pack
@@ -290,10 +306,11 @@ createManyFreeBookCoupons done n (BookSlug slug) uses noteMaybe =
   do
     requireKey
     start <- liftIO getToday
+    g <- liftIO createSystemRandom
 
     (sequence_ . replicate (fromIntegral n))
       do
-        code <- liftIO randomCouponCode
+        code <- liftIO (randomCouponCode g)
         wreqPostAeson_
             [slug, text "coupons"]
             (freeBookParams start code uses noteMaybe)
@@ -327,11 +344,17 @@ getToday = fmap Data.Time.utctDay Data.Time.getCurrentTime
 formatDay :: Day -> String
 formatDay = Data.Time.formatTime Data.Time.defaultTimeLocale "%Y-%m-%d"
 
-randomCouponCode :: IO CouponCode
-randomCouponCode =
+randomCouponCode :: GenIO -> IO CouponCode
+randomCouponCode g =
   do
     s <- sequence (Data.List.replicate 20 randomChar)
     return (CouponCode (text s))
   where
-    randomChar = pickOne charset
+    randomChar = pickOne g charset
     charset = ['a'..'z'] ++ ['0'..'9']
+
+pickOne :: GenIO -> [a] -> IO a
+pickOne g xs =
+  do
+    i <- uniformRM (0, length xs - 1) g
+    return (xs !! i)

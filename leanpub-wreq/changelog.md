@@ -7,3 +7,13 @@
   * Drop support for GHC 8.6
   * Add support for GHC 8.8 and 8.10
   * Tighten dependency bounds
+
+1.1.0.1 - 2021 Mar 9
+
+  * Change dependency from `rando` to `mwc-random`
+    for generating random coupon codes
+
+  * Relax dependency bounds
+
+  * Remove `lens` dependency (although `wreq`
+    incurs it transitively anyway)
