@@ -42,7 +42,7 @@ library
       , leanpub-concepts ^>= 1.0 || ^>= 1.1
       , mwc-random ^>= 0.15
       , text ^>= 1.2.4
-      , time ^>= 1.9 || ^>= 1.11
+      , time ^>= 1.9 || ^>= 1.10 || ^>= 1.11
       , transformers ^>=0.5
       , unordered-containers ^>= 0.2.13
       , wreq ^>= 0.5.3
