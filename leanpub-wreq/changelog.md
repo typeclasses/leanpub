@@ -17,3 +17,7 @@
 
   * Remove `lens` dependency (although `wreq`
     incurs it transitively anyway)
+
+1.1.0.2 - 2021 Mar 10
+
+  * Relax mwc-random lower bound to allow 0.14

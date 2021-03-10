@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -fdefer-typed-holes #-}
 
-{-# LANGUAGE BlockArguments, DerivingVia, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE BlockArguments, DerivingVia, LambdaCase, NamedFieldPuns #-}
 
 module Leanpub.Wreq
   (
@@ -48,7 +48,7 @@ import qualified Data.ByteString.Lazy
 import Leanpub.Concepts
 
 -- mwc-random
-import System.Random.MWC (GenIO, createSystemRandom, uniformRM)
+import System.Random.MWC (GenIO, createSystemRandom, uniformR)
 
 -- text
 import           Data.Text (Text)
@@ -96,6 +96,7 @@ data Context =
   Context
     { contextSession :: Session
     , contextKeyMaybe :: Maybe ApiSecretKey
+    , contextRandom :: GenIO
     }
 
 {- | There are two ways to run a 'Leanpub' action:
@@ -114,7 +115,7 @@ newtype Leanpub a = Leanpub (Context -> IO a)
 
 requireKey :: Leanpub ()
 requireKey =
-    Leanpub \Context{..} ->
+    Leanpub \Context{ contextKeyMaybe } ->
         when (isNothing contextKeyMaybe) (fail "API key is required.")
 
 ------------------------------------------------------------
@@ -124,7 +125,7 @@ runLeanpub (Config config) (Leanpub action) =
     createContext (config baseConfigData) >>= action
 
 createContext :: ConfigData -> IO Context
-createContext ConfigData{..} =
+createContext ConfigData{ configData_session, configData_key } =
   do
     contextSession <-
         case configData_session of
@@ -137,7 +138,9 @@ createContext ConfigData{..} =
             KeyConfig_File x  -> fmap Just (readKeyFile x)
             KeyConfig_Nothing -> return Nothing
 
-    return Context{..}
+    contextRandom <- createSystemRandom
+
+    return Context{ contextSession, contextKeyMaybe, contextRandom }
 
 {- | Construct a 'Config' by using '<>' to combine any of the following:
 
@@ -213,7 +216,7 @@ authFormParam (ApiSecretKey key) = ascii "api_key" := key
 
 wreqGet :: Path -> Extension -> [QueryParam] -> Leanpub WreqResponse
 wreqGet path extension params =
-    Leanpub \Context{..} ->
+    Leanpub \Context{ contextKeyMaybe, contextSession } ->
       let
           url = makeUrl path extension
 
@@ -229,7 +232,7 @@ wreqGet path extension params =
 
 wreqPost :: Path -> Extension -> [FormParam] -> Leanpub WreqResponse
 wreqPost path extension params =
-    Leanpub \Context{..} ->
+    Leanpub \Context{ contextKeyMaybe, contextSession } ->
         let
             url = makeUrl path extension
 
@@ -306,11 +309,9 @@ createManyFreeBookCoupons done n (BookSlug slug) uses noteMaybe =
   do
     requireKey
     start <- liftIO getToday
-    g <- liftIO createSystemRandom
-
     (sequence_ . replicate (fromIntegral n))
       do
-        code <- liftIO (randomCouponCode g)
+        code <- randomCouponCode
         wreqPostAeson_
             [slug, text "coupons"]
             (freeBookParams start code uses noteMaybe)
@@ -344,17 +345,20 @@ getToday = fmap Data.Time.utctDay Data.Time.getCurrentTime
 formatDay :: Day -> String
 formatDay = Data.Time.formatTime Data.Time.defaultTimeLocale "%Y-%m-%d"
 
-randomCouponCode :: GenIO -> IO CouponCode
-randomCouponCode g =
+randomCouponCode :: Leanpub CouponCode
+randomCouponCode =
   do
     s <- sequence (Data.List.replicate 20 randomChar)
     return (CouponCode (text s))
+
+randomChar :: Leanpub Char
+randomChar = Leanpub \Context{ contextRandom } ->
+    pickOne contextRandom charset
   where
-    randomChar = pickOne g charset
     charset = ['a'..'z'] ++ ['0'..'9']
 
 pickOne :: GenIO -> [a] -> IO a
 pickOne g xs =
   do
-    i <- uniformRM (0, length xs - 1) g
+    i <- uniformR (0, length xs - 1) g
     return (xs !! i)
