@@ -10,6 +10,7 @@ main =
                   , "--constraint=mwc-random == 0.14.0.0"
                   , "--constraint=text == 1.2.4.0"
                   , "--constraint=time == 1.9.*"
+                  , "--constraint=unordered-containers == 0.2.10.0"
                   ]
       "8.10.3" -> callProcess "cabal" ["build", "all"
                   , "--constraint=aeson == 1.5.*"

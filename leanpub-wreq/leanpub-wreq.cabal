@@ -44,5 +44,5 @@ library
       , text ^>= 1.2.4
       , time ^>= 1.9 || ^>= 1.10 || ^>= 1.11
       , transformers ^>=0.5
-      , unordered-containers ^>= 0.2.13
+      , unordered-containers ^>= 0.2.10
       , wreq ^>= 0.5.3
