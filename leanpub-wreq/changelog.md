@@ -25,3 +25,8 @@
 1.1.0.3 - 2022 Mar 15
 
   * Add support for GHC 9.0 and 9.2
+
+1.1.0.4 - 2022 Mar 15
+
+  * Require aeson 2.0
+  * Drop support for GHC 8.8
