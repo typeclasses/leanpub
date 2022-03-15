@@ -21,3 +21,7 @@
 1.1.0.2 - 2021 Mar 10
 
   * Relax mwc-random lower bound to allow 0.14
+
+1.1.0.3 - 2022 Mar 15
+
+  * Add support for GHC 9.0 and 9.2
