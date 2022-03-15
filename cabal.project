@@ -1,4 +1,1 @@
-packages:
-    leanpub-concepts/leanpub-concepts.cabal
-  , leanpub-wreq/leanpub-wreq.cabal
-
+packages: leanpub-concepts, leanpub-wreq
