@@ -1,7 +1,0 @@
-packages: leanpub-concepts, leanpub-wreq
-
-constraints:
-    base == 4.14.*
-  , bytestring == 0.10.*
-  , mwc-random == 0.15.*
-  , time == 1.11.*
