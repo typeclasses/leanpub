@@ -1,4 +1,4 @@
-cabal-version: 2.0
+cabal-version: 3.0
 
 name: leanpub-wreq
 version: 1.1.0.4
@@ -7,9 +7,8 @@ synopsis: Use the Leanpub API via Wreq
 category: Web
 
 description:
-    This package helps you make requests to the
-    <https://leanpub.com/help/api Leanpub API> in conjunction with
-    the <https://hackage.haskell.org/package/wreq wreq> package.
+    This package helps you make requests to the Leanpub API
+    in conjunction with the wreq package.
 
 homepage:    https://github.com/typeclasses/leanpub
 bug-reports: https://github.com/typeclasses/leanpub/issues
@@ -21,10 +20,7 @@ copyright: 2021 Mission Valley Software LLC
 license: MIT
 license-file: license.txt
 
-build-type: Simple
-
-extra-source-files:
-    changelog.md
+extra-source-files: *.md
 
 library
     hs-source-dirs: library
@@ -34,14 +30,14 @@ library
         Leanpub.Wreq
 
     build-depends:
-        aeson ^>= 2.0
-      , base ^>= 4.14 || ^>= 4.15 || ^>= 4.16
+      , aeson ^>= 2.0 || ^>= 2.1
+      , base ^>= 4.15 || ^>= 4.16 || ^>= 4.17 || ^>= 4.18
       , bytestring ^>= 0.10 || ^>= 0.11
       , exceptions ^>= 0.10
       , leanpub-concepts ^>= 1.0 || ^>= 1.1
       , mwc-random ^>= 0.14 || ^>= 0.15
-      , text ^>= 1.2.4
-      , time ^>= 1.9 || ^>= 1.10 || ^>= 1.11
-      , transformers ^>=0.5
+      , text ^>= 1.2.4 || ^>= 2.0
+      , time ^>= 1.9 || ^>= 1.10 || ^>= 1.11 || ^>= 1.12
+      , transformers ^>= 0.5 || ^>= 0.6
       , unordered-containers ^>= 0.2.10
       , wreq ^>= 0.5.3

@@ -11,4 +11,6 @@ Packages in this repository:
   [leanpub-wreq]:     https://hackage.haskell.org/package/leanpub-wreq
   [wreq]:             https://hackage.haskell.org/package/wreq
 
-  
+To build and test with all supported compiler versions:
+
+  nix build .#testConfigurations.all --no-link
