@@ -1,6 +1,0 @@
-cradle:
-  cabal:
-    - path: "./leanpub-concepts/library"
-      component: "lib:leanpub-concepts"
-    - path: "./leanpub-wreq/library"
-      component: "lib:leanpub-wreq"
